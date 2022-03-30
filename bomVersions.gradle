@@ -1,0 +1,7 @@
+ext {
+    log4jVersion="2.17.2"
+    jettyVersion="10.0.6"
+    jerseyVersion="2.35"
+    jacksonVersion="2.13.2"
+    postgresqlJavaVersion="42.3.3"
+}
