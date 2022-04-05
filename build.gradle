@@ -25,6 +25,8 @@ ext {
         "org.eclipse.jetty:jetty-servlet:${jettyVersion}",
         // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-servlets
         "org.eclipse.jetty:jetty-servlets:${jettyVersion}",
+        // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-http
+        "org.eclipse.jetty:jetty-http:${jettyVersion}",
         // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-security
         "org.eclipse.jetty:jetty-security:${jettyVersion}",
         // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-rewrite
