@@ -70,7 +70,12 @@ ext {
     javaxWsRs = [
         // https://mvnrepository.com/artifact/javax.ws.rs/javax.ws.rs-api
         "javax.ws.rs:javax.ws.rs-api:${javaxWsRsVersion}"
-        ]        
+        ]   
+        
+    javaxSevlet = [    
+        // https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api
+        "javax.servlet:javax.servlet-api:${javaxServletVersion}"
+        ]
         
     jaxb = [
         // https://mvnrepository.com/artifact/org.glassfish.jaxb/jaxb-runtime
@@ -103,7 +108,7 @@ ext {
 }
 
 dependencies {
-    implementation jetty, jersey, jackson, javaxWsRs, jaxb, postgresqlJava, slf4j, junitTest, jerseyTest
+    implementation jetty, jersey, jackson, javaxWsRs, javaxSevlet, jaxb, postgresqlJava, slf4j, junitTest, jerseyTest
 }
 
 
