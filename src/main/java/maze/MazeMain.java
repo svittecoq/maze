@@ -22,6 +22,7 @@ public class MazeMain {
 
         // Use the provided DatabaseURI or the default one
         if (databaseURIProperty != null) {
+            Api.info("Property " + Setup.DATABASE_URI_PROPERTY + " = " + databaseURIProperty);
             databaseURI = Api.URI(databaseURIProperty);
         } else {
             databaseURI = Api.URI(Setup.DEFAULT_STORE_URI + Setup.DATABASE_ID);
@@ -29,6 +30,7 @@ public class MazeMain {
 
         // Use the Web Path if provided
         if (webPathProperty != null) {
+            Api.info("Property " + Setup.WEB_PATH_PROPERTY + " = " + webPathProperty);
             webPathOptional = Optional.of(webPathProperty);
         } else {
             webPathOptional = Optional.empty();
@@ -36,6 +38,7 @@ public class MazeMain {
 
         // Use the Web Port if provided
         if (webPortProperty != null) {
+            Api.info("Property " + Setup.WEB_PORT_PROPERTY + " = " + webPortProperty);
             webPortOptional = Optional.of(Integer.valueOf(webPortProperty));
         } else {
             webPortOptional = Optional.empty();

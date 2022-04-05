@@ -1,1 +1,1 @@
-web: java -cp "build/libs/*" maze.MazeMain -DdatabaseUri=$DATABASE_URL -DwebPort=$PORT
+web: java -cp "build/libs/*" -DdatabaseUri=$DATABASE_URL -DwebPort=$PORT maze.MazeMain
