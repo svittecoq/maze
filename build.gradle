@@ -127,3 +127,11 @@ task stage(dependsOn: ['build', 'clean', 'copyToLib'])
 build.mustRunAfter clean
 
 mainClassName = 'maze.MazeMain'
+
+jar {
+  manifest {
+    attributes(
+      'Main-Class': mainClassName
+    )
+  }
+}
