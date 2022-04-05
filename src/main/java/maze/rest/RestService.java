@@ -24,8 +24,8 @@ import maze.base.RestOutput;
 import maze.handler.core.CoreHandler;
 import maze.http.HttpService;
 import maze.model.Maze;
-import maze.model.SessionToken;
 import maze.model.User;
+import maze.model.UserToken;
 
 @Path("/")
 public class RestService extends ResourceConfig {
@@ -65,21 +65,21 @@ public class RestService extends ResourceConfig {
 
         RestCall.run(asyncResponse, (cookieReference) -> {
 
-            RestOutput<SessionToken> sessionTokenOutput;
-            SessionToken sessionToken;
+            RestOutput<UserToken> userTokenOutput;
+            UserToken userToken;
 
             // Login the User with its username and password
-            sessionTokenOutput = coreHandler().loginUser(user);
-            if (RestOutput.isNOK(sessionTokenOutput)) {
-                Api.error("loginUser is NOT OK", sessionTokenOutput, user, this);
-                return RestOutput.of(sessionTokenOutput);
+            userTokenOutput = coreHandler().loginUser(user);
+            if (RestOutput.isNOK(userTokenOutput)) {
+                Api.error("loginUser is NOT OK", userTokenOutput, user, this);
+                return RestOutput.of(userTokenOutput);
             }
-            sessionToken = sessionTokenOutput.output();
+            userToken = userTokenOutput.output();
 
-            HttpService.assignSessionToken(httpRequest, sessionToken);
-            cookieReference.set(new Cookie(Setup.SESSION_TOKEN, sessionToken.toText()));
+            HttpService.assignUserToken(httpRequest, userToken);
+            cookieReference.set(new Cookie(Setup.USER_TOKEN, userToken.toText()));
 
-            return RestOutput.ok(sessionToken);
+            return RestOutput.ok(userToken);
         });
     }
 
@@ -93,21 +93,21 @@ public class RestService extends ResourceConfig {
 
         RestCall.run(asyncResponse, (cookieReference) -> {
 
-            RestOutput<SessionToken> sessionTokenOutput;
-            SessionToken sessionToken;
+            RestOutput<UserToken> userTokenOutput;
+            UserToken userToken;
 
             // Sign up the new user with its username and password
-            sessionTokenOutput = coreHandler().signUpUser(user);
-            if (RestOutput.isNOK(sessionTokenOutput)) {
-                Api.error("signUpUser is NOT OK", sessionTokenOutput, user, this);
-                return RestOutput.of(sessionTokenOutput);
+            userTokenOutput = coreHandler().signUpUser(user);
+            if (RestOutput.isNOK(userTokenOutput)) {
+                Api.error("signUpUser is NOT OK", userTokenOutput, user, this);
+                return RestOutput.of(userTokenOutput);
             }
-            sessionToken = sessionTokenOutput.output();
+            userToken = userTokenOutput.output();
 
-            HttpService.assignSessionToken(httpRequest, sessionToken);
-            cookieReference.set(new Cookie(Setup.SESSION_TOKEN, sessionToken.toText()));
+            HttpService.assignUserToken(httpRequest, userToken);
+            cookieReference.set(new Cookie(Setup.USER_TOKEN, userToken.toText()));
 
-            return RestOutput.ok(sessionToken);
+            return RestOutput.ok(userToken);
         });
     }
 
@@ -121,19 +121,19 @@ public class RestService extends ResourceConfig {
 
         RestCall.run(asyncResponse, (cookieReference) -> {
 
-            Optional<SessionToken> sessionTokenOptional;
-            SessionToken sessionToken;
+            Optional<UserToken> userTokenOptional;
+            UserToken userToken;
 
-            // Search the SessionToken from the Request
-            sessionTokenOptional = HttpService.searchSessionToken(httpRequest);
-            if (sessionTokenOptional.isEmpty()) {
-                Api.error("SessionToken is not defined to postMaze. FORBIDDEN", maze);
+            // Search the UserToken from the Request
+            userTokenOptional = HttpService.searchUserToken(httpRequest);
+            if (userTokenOptional.isEmpty()) {
+                Api.error("UserToken is not defined to postMaze. FORBIDDEN", maze);
                 return RestOutput.forbidden();
             }
-            sessionToken = sessionTokenOptional.get();
+            userToken = userTokenOptional.get();
 
             // Add the new maze for this user
-            return coreHandler().addMaze(sessionToken, maze);
+            return coreHandler().addMaze(userToken, maze);
         });
     }
 
@@ -146,18 +146,18 @@ public class RestService extends ResourceConfig {
 
         RestCall.run(asyncResponse, (cookieReference) -> {
 
-            Optional<SessionToken> sessionTokenOptional;
-            SessionToken sessionToken;
+            Optional<UserToken> userTokenOptional;
+            UserToken userToken;
 
-            // Search the SessionToken from the Request
-            sessionTokenOptional = HttpService.searchSessionToken(httpRequest);
-            if (sessionTokenOptional.isEmpty()) {
-                Api.error("SessionToken is not defined to getMaze. FORBIDDEN", mazeId);
+            // Search the UserToken from the Request
+            userTokenOptional = HttpService.searchUserToken(httpRequest);
+            if (userTokenOptional.isEmpty()) {
+                Api.error("UserToken is not defined to getMaze. FORBIDDEN", mazeId);
                 return RestOutput.forbidden();
             }
-            sessionToken = sessionTokenOptional.get();
+            userToken = userTokenOptional.get();
 
-            return coreHandler().retrieveMaze(sessionToken, mazeId);
+            return coreHandler().retrieveMaze(userToken, mazeId);
         });
     }
 
@@ -168,18 +168,18 @@ public class RestService extends ResourceConfig {
 
         RestCall.run(asyncResponse, (cookieReference) -> {
 
-            Optional<SessionToken> sessionTokenOptional;
-            SessionToken sessionToken;
+            Optional<UserToken> userTokenOptional;
+            UserToken userToken;
 
-            // Search the SessionToken from the Request
-            sessionTokenOptional = HttpService.searchSessionToken(httpRequest);
-            if (sessionTokenOptional.isEmpty()) {
-                Api.error("SessionToken is not defined to getMazes. FORBIDDEN");
+            // Search the UserToken from the Request
+            userTokenOptional = HttpService.searchUserToken(httpRequest);
+            if (userTokenOptional.isEmpty()) {
+                Api.error("UserToken is not defined to getMazes. FORBIDDEN");
                 return RestOutput.forbidden();
             }
-            sessionToken = sessionTokenOptional.get();
+            userToken = userTokenOptional.get();
 
-            return coreHandler().retrieveMazes(sessionToken);
+            return coreHandler().retrieveMazes(userToken);
         });
     }
 
@@ -193,24 +193,24 @@ public class RestService extends ResourceConfig {
 
         RestCall.run(asyncResponse, (cookieReference) -> {
 
-            Optional<SessionToken> sessionTokenOptional;
-            SessionToken sessionToken;
+            Optional<UserToken> userTokenOptional;
+            UserToken userToken;
 
-            // Search the SessionToken from the Request
-            sessionTokenOptional = HttpService.searchSessionToken(httpRequest);
-            if (sessionTokenOptional.isEmpty()) {
-                Api.error("SessionToken is not defined to getMazeSolution. FORBIDDEN");
+            // Search the UserToken from the Request
+            userTokenOptional = HttpService.searchUserToken(httpRequest);
+            if (userTokenOptional.isEmpty()) {
+                Api.error("UserToken is not defined to getMazeSolution. FORBIDDEN");
                 return RestOutput.forbidden();
             }
-            sessionToken = sessionTokenOptional.get();
+            userToken = userTokenOptional.get();
 
             if (Objects.equals("min", steps)) {
                 // Return the Min Path for this Maze
-                return coreHandler().solveMinPath(sessionToken, mazeId);
+                return coreHandler().solveMinPath(userToken, mazeId);
             }
             if (Objects.equals("max", steps)) {
                 // Return the Max Path for this Maze
-                return coreHandler().solveMaxPath(sessionToken, mazeId);
+                return coreHandler().solveMaxPath(userToken, mazeId);
             }
             Api.error("Get Maze Solution requires steps parameter to be min or max. BAD REQUEST");
             return RestOutput.badRequest();

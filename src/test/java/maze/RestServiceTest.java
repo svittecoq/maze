@@ -27,8 +27,8 @@ import maze.http.HttpCode;
 import maze.model.Maze;
 import maze.model.MazeCreation;
 import maze.model.MazeSolution;
-import maze.model.SessionToken;
 import maze.model.User;
+import maze.model.UserToken;
 import maze.rest.RestService;
 
 public class RestServiceTest extends JerseyTest {
@@ -91,7 +91,7 @@ public class RestServiceTest extends JerseyTest {
     public void createUserWithValidUserNameAndPassword() {
 
         User user;
-        SessionToken sessionToken;
+        UserToken userToken;
 
         user = new User(generateValidUsername(), "a2TT&d3mn");
 
@@ -100,8 +100,8 @@ public class RestServiceTest extends JerseyTest {
                                            .post(Entity.entity(user, MediaType.APPLICATION_JSON_TYPE));
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response.getStatus());
-        sessionToken = response.readEntity(SessionToken.class);
-        assertTrue("Session Token should be returned", (sessionToken.getToken() != null));
+        userToken = response.readEntity(UserToken.class);
+        assertTrue("User Token should be returned", (userToken.getToken() != null));
     }
 
     @Test
@@ -124,7 +124,7 @@ public class RestServiceTest extends JerseyTest {
 
         String userId;
         User user;
-        SessionToken sessionToken;
+        UserToken userToken;
 
         userId = generateValidUsername();
         user = new User(userId, "aQQQ2TT&d3mn");
@@ -135,8 +135,8 @@ public class RestServiceTest extends JerseyTest {
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response1.getStatus());
 
-        sessionToken = response1.readEntity(SessionToken.class);
-        assertTrue("Session Token should be returned", (sessionToken.getToken() != null));
+        userToken = response1.readEntity(UserToken.class);
+        assertTrue("User Token should be returned", (userToken.getToken() != null));
 
         // Re-create another User with same userId
         user = new User(userId, "aXQ233&TTd3mn");
@@ -153,7 +153,7 @@ public class RestServiceTest extends JerseyTest {
 
         String userId;
         User user;
-        SessionToken sessionToken;
+        UserToken userToken;
         Maze maze;
         MazeCreation mazeCreation;
 
@@ -166,14 +166,14 @@ public class RestServiceTest extends JerseyTest {
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response1.getStatus());
 
-        sessionToken = response1.readEntity(SessionToken.class);
-        assertTrue("Session Token should be returned", (sessionToken.getToken() != null));
+        userToken = response1.readEntity(UserToken.class);
+        assertTrue("User Token should be returned", (userToken.getToken() != null));
 
         maze = new Maze(null, "A2", "6x4", new String[] { "A1", "E1", "C2", "C3", "F3", "A4", "B4", "C4", "D4", "F4" });
 
         // Post this Maze
         Response response2 = target("/maze").request(MediaType.APPLICATION_JSON_TYPE)
-                                            .cookie(Setup.SESSION_TOKEN, sessionToken.toText())
+                                            .cookie(Setup.USER_TOKEN, userToken.toText())
                                             .post(Entity.entity(maze, MediaType.APPLICATION_JSON_TYPE));
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response2.getStatus());
@@ -188,7 +188,7 @@ public class RestServiceTest extends JerseyTest {
 
         String userId;
         User user;
-        SessionToken sessionToken;
+        UserToken userToken;
         Maze maze;
         MazeCreation mazeCreation;
         MazeSolution mazeSolution;
@@ -202,14 +202,14 @@ public class RestServiceTest extends JerseyTest {
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response1.getStatus());
 
-        sessionToken = response1.readEntity(SessionToken.class);
-        assertTrue("Session Token should be returned", (sessionToken.getToken() != null));
+        userToken = response1.readEntity(UserToken.class);
+        assertTrue("User Token should be returned", (userToken.getToken() != null));
 
         maze = new Maze(null, "E1", "5x5", new String[] { "B2", "D2", "E2", "B3", "E4", "A5", "B5", "D5", "E5" });
 
         // Post this Maze
         Response response2 = target("/maze").request(MediaType.APPLICATION_JSON_TYPE)
-                                            .cookie(Setup.SESSION_TOKEN, sessionToken.toText())
+                                            .cookie(Setup.USER_TOKEN, userToken.toText())
                                             .post(Entity.entity(maze, MediaType.APPLICATION_JSON_TYPE));
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response2.getStatus());
@@ -222,7 +222,7 @@ public class RestServiceTest extends JerseyTest {
         Response response3 = target("/maze/" + mazeCreation.getMazeId()
                                     + "/solution").queryParam("steps", "min")
                                                   .request(MediaType.APPLICATION_JSON_TYPE)
-                                                  .cookie(Setup.SESSION_TOKEN, sessionToken.toText())
+                                                  .cookie(Setup.USER_TOKEN, userToken.toText())
                                                   .get();
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response3.getStatus());
@@ -239,7 +239,7 @@ public class RestServiceTest extends JerseyTest {
 
         String userId;
         User user;
-        SessionToken sessionToken;
+        UserToken userToken;
         Maze maze;
         MazeCreation mazeCreation;
         MazeSolution mazeSolution;
@@ -253,8 +253,8 @@ public class RestServiceTest extends JerseyTest {
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response1.getStatus());
 
-        sessionToken = response1.readEntity(SessionToken.class);
-        assertTrue("Session Token should be returned", (sessionToken.getToken() != null));
+        userToken = response1.readEntity(UserToken.class);
+        assertTrue("User Token should be returned", (userToken.getToken() != null));
 
         maze = new Maze(null,
                         "A2",
@@ -286,7 +286,7 @@ public class RestServiceTest extends JerseyTest {
 
         // Post this Maze
         Response response2 = target("/maze").request(MediaType.APPLICATION_JSON_TYPE)
-                                            .cookie(Setup.SESSION_TOKEN, sessionToken.toText())
+                                            .cookie(Setup.USER_TOKEN, userToken.toText())
                                             .post(Entity.entity(maze, MediaType.APPLICATION_JSON_TYPE));
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response2.getStatus());
@@ -299,7 +299,7 @@ public class RestServiceTest extends JerseyTest {
         Response response3 = target("/maze/" + mazeCreation.getMazeId()
                                     + "/solution").queryParam("steps", "max")
                                                   .request(MediaType.APPLICATION_JSON_TYPE)
-                                                  .cookie(Setup.SESSION_TOKEN, sessionToken.toText())
+                                                  .cookie(Setup.USER_TOKEN, userToken.toText())
                                                   .get();
 
         assertEquals("Http Response should be 200-OK", HttpCode.OK_200, response3.getStatus());

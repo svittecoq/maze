@@ -21,8 +21,8 @@ import maze.http.servlet.LoginServlet;
 import maze.model.Maze;
 import maze.model.MazeCreation;
 import maze.model.MazeSolution;
-import maze.model.SessionToken;
 import maze.model.User;
+import maze.model.UserToken;
 import maze.rest.RestService;
 import maze.store.StoreService;
 import maze.store.maze.MazeRecord;
@@ -30,16 +30,16 @@ import maze.store.user.UserRecord;
 
 public class CoreHandler {
 
-    private final ConcurrentHashMap<String, UserHandler>          _userHandlerMap;
-    private final ConcurrentHashMap<SessionToken, SessionHandler> _sessionHandlerMap;
-    private final StoreService                                    _storeService;
-    private final RestService                                     _restService;
-    private final HttpService                                     _httpService;
+    private final ConcurrentHashMap<String, UserHandler>       _userHandlerMap;
+    private final ConcurrentHashMap<UserToken, SessionHandler> _sessionHandlerMap;
+    private final StoreService                                 _storeService;
+    private final RestService                                  _restService;
+    private final HttpService                                  _httpService;
 
     private CoreHandler(URI databaseURI, Optional<String> webPathOptional, Optional<Integer> webPortOptional) {
 
         _userHandlerMap = new ConcurrentHashMap<String, UserHandler>();
-        _sessionHandlerMap = new ConcurrentHashMap<SessionToken, SessionHandler>();
+        _sessionHandlerMap = new ConcurrentHashMap<UserToken, SessionHandler>();
         _storeService = new StoreService(databaseURI);
         _restService = new RestService(this);
         _httpService = new HttpService(webPathOptional,
@@ -54,7 +54,7 @@ public class CoreHandler {
         return _userHandlerMap;
     }
 
-    private ConcurrentHashMap<SessionToken, SessionHandler> sessionHandlerMap() {
+    private ConcurrentHashMap<UserToken, SessionHandler> sessionHandlerMap() {
 
         return _sessionHandlerMap;
     }
@@ -94,22 +94,22 @@ public class CoreHandler {
         return storeService().loadMazeRecords();
     }
 
-    private RestOutput<UserHandler> findUserHandler(SessionToken sessionToken) {
+    private RestOutput<UserHandler> findUserHandler(UserToken userToken) {
 
         SessionHandler sessionHandler;
 
-        if (Api.isNull(sessionToken)) {
+        if (Api.isNull(userToken)) {
             return RestOutput.badRequest();
         }
 
-        sessionHandler = sessionHandlerMap().get(sessionToken);
+        sessionHandler = sessionHandlerMap().get(userToken);
         if (sessionHandler == null) {
-            Api.error("This session does not exist anymore. FORBIDDEN", sessionToken, this);
+            Api.error("This session does not exist anymore. FORBIDDEN", userToken, this);
             return RestOutput.forbidden();
         }
 
         if (sessionHandler.hasTimedOut()) {
-            Api.error("This session has timed out. FORBIDDEN", sessionToken, sessionHandler, this);
+            Api.error("This session has timed out. FORBIDDEN", userToken, sessionHandler, this);
             return RestOutput.forbidden();
         }
 
@@ -174,11 +174,11 @@ public class CoreHandler {
         return RestOutput.ok(userHandler);
     }
 
-    public RestOutput<SessionToken> signUpUser(User user) {
+    public RestOutput<UserToken> signUpUser(User user) {
 
         RestOutput<UserHandler> userHandlerOutput;
         UserHandler userHandler;
-        SessionToken sessionToken;
+        UserToken userToken;
         RestOutput<SessionHandler> sessionHandlerOutput;
         SessionHandler sessionHandler;
 
@@ -193,14 +193,14 @@ public class CoreHandler {
         }
         userHandler = userHandlerOutput.output();
 
-        // Generate a new SessionToken for this User signing up
-        sessionToken = SessionToken.random();
+        // Generate a new UserToken for this User signing up
+        userToken = UserToken.random();
 
-        sessionHandlerOutput = SessionHandler.with(sessionToken, userHandler);
+        sessionHandlerOutput = SessionHandler.with(userToken, userHandler);
         if (RestOutput.isNOK(sessionHandlerOutput)) {
             Api.error("SessionHandler to signUpUser is NOT OK",
                       sessionHandlerOutput,
-                      sessionToken,
+                      userToken,
                       userHandler,
                       user,
                       this);
@@ -208,22 +208,22 @@ public class CoreHandler {
         }
         sessionHandler = sessionHandlerOutput.output();
 
-        if (sessionHandlerMap().putIfAbsent(sessionToken, sessionHandler) != null) {
+        if (sessionHandlerMap().putIfAbsent(userToken, sessionHandler) != null) {
             Api.error("SessionHandler to signUpUser is a duplicate. INTERNAL FAILURE",
-                      sessionToken,
+                      userToken,
                       userHandler,
                       user,
                       this);
             return RestOutput.internalFailure();
         }
 
-        return RestOutput.ok(sessionHandler.sessionToken());
+        return RestOutput.ok(sessionHandler.userToken());
     }
 
-    public RestOutput<SessionToken> loginUser(User user) {
+    public RestOutput<UserToken> loginUser(User user) {
 
         UserHandler userHandler;
-        SessionToken sessionToken;
+        UserToken userToken;
         RestOutput<SessionHandler> sessionHandlerOutput;
         SessionHandler sessionHandler;
 
@@ -243,14 +243,14 @@ public class CoreHandler {
             return RestOutput.forbidden();
         }
 
-        // Generate a new SessionToken for this User signing up
-        sessionToken = SessionToken.random();
+        // Generate a new UserToken for this User signing up
+        userToken = UserToken.random();
 
-        sessionHandlerOutput = SessionHandler.with(sessionToken, userHandler);
+        sessionHandlerOutput = SessionHandler.with(userToken, userHandler);
         if (RestOutput.isNOK(sessionHandlerOutput)) {
             Api.error("SessionHandler to loginUser is NOT OK",
                       sessionHandlerOutput,
-                      sessionToken,
+                      userToken,
                       userHandler,
                       user,
                       this);
@@ -258,30 +258,30 @@ public class CoreHandler {
         }
         sessionHandler = sessionHandlerOutput.output();
 
-        if (sessionHandlerMap().putIfAbsent(sessionToken, sessionHandler) != null) {
+        if (sessionHandlerMap().putIfAbsent(userToken, sessionHandler) != null) {
             Api.error("SessionHandler to loginUser is a duplicate. INTERNAL FAILURE",
-                      sessionToken,
+                      userToken,
                       userHandler,
                       user,
                       this);
             return RestOutput.internalFailure();
         }
 
-        return RestOutput.ok(sessionHandler.sessionToken());
+        return RestOutput.ok(sessionHandler.userToken());
     }
 
-    public RestOutput<Result> validateSessionToken(SessionToken sessionToken) {
+    public RestOutput<Result> validateUserToken(UserToken userToken) {
 
         RestOutput<UserHandler> userHandlerOutput;
 
-        if (Api.isNull(sessionToken)) {
+        if (Api.isNull(userToken)) {
             return RestOutput.badRequest();
         }
 
-        // Find the UserHandler from the SessionToken
-        userHandlerOutput = findUserHandler(sessionToken);
+        // Find the UserHandler from the UserToken
+        userHandlerOutput = findUserHandler(userToken);
         if (RestOutput.isNOK(userHandlerOutput)) {
-            Api.error("findUserHandler to validateSessionToken is NOT OK", userHandlerOutput, sessionToken, this);
+            Api.error("findUserHandler to validateUserToken is NOT OK", userHandlerOutput, userToken, this);
             return RestOutput.of(userHandlerOutput);
         }
 
@@ -341,19 +341,19 @@ public class CoreHandler {
         return RestOutput.ok(new MazeCreation(mazeHandler.mazeId()));
     }
 
-    public RestOutput<MazeCreation> addMaze(SessionToken sessionToken, Maze maze) {
+    public RestOutput<MazeCreation> addMaze(UserToken userToken, Maze maze) {
 
         RestOutput<UserHandler> userHandlerOutput;
         UserHandler userHandler;
 
-        if (Api.isNull(sessionToken, maze.getEntrance(), maze.getGridSize(), maze.getWalls())) {
+        if (Api.isNull(userToken, maze.getEntrance(), maze.getGridSize(), maze.getWalls())) {
             return RestOutput.badRequest();
         }
 
-        // Find the UserHandler from the SessionToken
-        userHandlerOutput = findUserHandler(sessionToken);
+        // Find the UserHandler from the UserToken
+        userHandlerOutput = findUserHandler(userToken);
         if (RestOutput.isNOK(userHandlerOutput)) {
-            Api.error("SessionHandler to addMaze is NOT OK", userHandlerOutput, sessionToken, maze, this);
+            Api.error("SessionHandler to addMaze is NOT OK", userHandlerOutput, userToken, maze, this);
             return RestOutput.of(userHandlerOutput);
         }
         userHandler = userHandlerOutput.output();
@@ -361,19 +361,19 @@ public class CoreHandler {
         return addMaze(userHandler, maze, Boolean.TRUE);
     }
 
-    public RestOutput<Maze> retrieveMaze(SessionToken sessionToken, Integer mazeId) {
+    public RestOutput<Maze> retrieveMaze(UserToken userToken, Integer mazeId) {
 
         RestOutput<UserHandler> userHandlerOutput;
         UserHandler userHandler;
 
-        if (Api.isNull(sessionToken, mazeId)) {
+        if (Api.isNull(userToken, mazeId)) {
             return RestOutput.badRequest();
         }
 
-        // Find the UserHandler from the SessionToken
-        userHandlerOutput = findUserHandler(sessionToken);
+        // Find the UserHandler from the UserToken
+        userHandlerOutput = findUserHandler(userToken);
         if (RestOutput.isNOK(userHandlerOutput)) {
-            Api.error("SessionHandler to retrieveMaze is NOT OK", userHandlerOutput, sessionToken, mazeId, this);
+            Api.error("SessionHandler to retrieveMaze is NOT OK", userHandlerOutput, userToken, mazeId, this);
             return RestOutput.of(userHandlerOutput);
         }
         userHandler = userHandlerOutput.output();
@@ -381,19 +381,19 @@ public class CoreHandler {
         return userHandler.retrieveMaze(mazeId);
     }
 
-    public RestOutput<Maze[]> retrieveMazes(SessionToken sessionToken) {
+    public RestOutput<Maze[]> retrieveMazes(UserToken userToken) {
 
         RestOutput<UserHandler> userHandlerOutput;
         UserHandler userHandler;
 
-        if (Api.isNull(sessionToken)) {
+        if (Api.isNull(userToken)) {
             return RestOutput.badRequest();
         }
 
-        // Find the UserHandler from the SessionToken
-        userHandlerOutput = findUserHandler(sessionToken);
+        // Find the UserHandler from the UserToken
+        userHandlerOutput = findUserHandler(userToken);
         if (RestOutput.isNOK(userHandlerOutput)) {
-            Api.error("SessionHandler to retrieveMazes is NOT OK", userHandlerOutput, sessionToken, this);
+            Api.error("SessionHandler to retrieveMazes is NOT OK", userHandlerOutput, userToken, this);
             return RestOutput.of(userHandlerOutput);
         }
         userHandler = userHandlerOutput.output();
@@ -401,19 +401,19 @@ public class CoreHandler {
         return userHandler.retrieveMazes();
     }
 
-    public RestOutput<MazeSolution> solveMinPath(SessionToken sessionToken, Integer mazeId) {
+    public RestOutput<MazeSolution> solveMinPath(UserToken userToken, Integer mazeId) {
 
         RestOutput<UserHandler> userHandlerOutput;
         UserHandler userHandler;
 
-        if (Api.isNull(sessionToken, mazeId)) {
+        if (Api.isNull(userToken, mazeId)) {
             return RestOutput.badRequest();
         }
 
-        // Find the UserHandler from the SessionToken
-        userHandlerOutput = findUserHandler(sessionToken);
+        // Find the UserHandler from the UserToken
+        userHandlerOutput = findUserHandler(userToken);
         if (RestOutput.isNOK(userHandlerOutput)) {
-            Api.error("SessionHandler to solveMinPath is NOT OK", userHandlerOutput, sessionToken, mazeId, this);
+            Api.error("SessionHandler to solveMinPath is NOT OK", userHandlerOutput, userToken, mazeId, this);
             return RestOutput.of(userHandlerOutput);
         }
         userHandler = userHandlerOutput.output();
@@ -421,19 +421,19 @@ public class CoreHandler {
         return userHandler.solveMinPath(mazeId);
     }
 
-    public RestOutput<MazeSolution> solveMaxPath(SessionToken sessionToken, Integer mazeId) {
+    public RestOutput<MazeSolution> solveMaxPath(UserToken userToken, Integer mazeId) {
 
         RestOutput<UserHandler> userHandlerOutput;
         UserHandler userHandler;
 
-        if (Api.isNull(sessionToken, mazeId)) {
+        if (Api.isNull(userToken, mazeId)) {
             return RestOutput.badRequest();
         }
 
-        // Find the UserHandler from the SessionToken
-        userHandlerOutput = findUserHandler(sessionToken);
+        // Find the UserHandler from the UserToken
+        userHandlerOutput = findUserHandler(userToken);
         if (RestOutput.isNOK(userHandlerOutput)) {
-            Api.error("SessionHandler to solveMaxPath is NOT OK", userHandlerOutput, sessionToken, mazeId, this);
+            Api.error("SessionHandler to solveMaxPath is NOT OK", userHandlerOutput, userToken, mazeId, this);
             return RestOutput.of(userHandlerOutput);
         }
         userHandler = userHandlerOutput.output();

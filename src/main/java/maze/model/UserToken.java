@@ -3,15 +3,15 @@ package maze.model;
 import java.util.Objects;
 import java.util.UUID;
 
-public class SessionToken {
+public class UserToken {
 
     private UUID _token;
 
-    public SessionToken() {
+    public UserToken() {
         this(null);
     }
 
-    public SessionToken(UUID token) {
+    public UserToken(UUID token) {
 
         setToken(token);
     }
@@ -35,9 +35,9 @@ public class SessionToken {
 
         if (this == object)
             return true;
-        if (!(object instanceof SessionToken))
+        if (!(object instanceof UserToken))
             return false;
-        SessionToken that = (SessionToken) object;
+        UserToken that = (UserToken) object;
 
         return Objects.equals(this.getToken(), that.getToken());
     }
@@ -57,13 +57,13 @@ public class SessionToken {
         return toText();
     }
 
-    public static SessionToken with(String text) {
+    public static UserToken with(String text) {
 
-        return new SessionToken(UUID.fromString(text));
+        return new UserToken(UUID.fromString(text));
     }
 
-    public static SessionToken random() {
+    public static UserToken random() {
 
-        return new SessionToken(UUID.randomUUID());
+        return new UserToken(UUID.randomUUID());
     }
 }

@@ -32,7 +32,7 @@ import maze.base.RestOutput;
 import maze.base.Result;
 import maze.http.servlet.HtmlServlet;
 import maze.http.servlet.LoginServlet;
-import maze.model.SessionToken;
+import maze.model.UserToken;
 import maze.rest.RestService;
 
 public class HttpService {
@@ -304,7 +304,7 @@ public class HttpService {
                + "]";
     }
 
-    public static Optional<SessionToken> searchSessionToken(HttpServletRequest httpRequest) {
+    public static Optional<UserToken> searchUserToken(HttpServletRequest httpRequest) {
 
         HttpSession httpSession;
         Object attribute;
@@ -317,38 +317,38 @@ public class HttpService {
         httpSession = httpRequest.getSession(false);
         if (httpSession != null) {
             // Look for the attribute
-            attribute = httpSession.getAttribute(Setup.SESSION_TOKEN);
+            attribute = httpSession.getAttribute(Setup.USER_TOKEN);
             if (attribute != null) {
-                if (SessionToken.class.isInstance(attribute) == false) {
-                    Api.error("Session Attribute is not a SessionToken", Setup.SESSION_TOKEN);
+                if (UserToken.class.isInstance(attribute) == false) {
+                    Api.error("UserToken Attribute in http session is not a UserToken", Setup.USER_TOKEN);
                     return Optional.empty();
                 }
-                return Optional.of(SessionToken.class.cast(attribute));
+                return Optional.of(UserToken.class.cast(attribute));
             }
         }
         // Look for the Cookie
         cookies = httpRequest.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                if (Objects.equals(Setup.SESSION_TOKEN, cookie.getName())) {
-                    return Optional.ofNullable(SessionToken.with(cookie.getValue()));
+                if (Objects.equals(Setup.USER_TOKEN, cookie.getName())) {
+                    return Optional.ofNullable(UserToken.with(cookie.getValue()));
                 }
             }
         }
         return Optional.empty();
     }
 
-    public static void assignSessionToken(HttpServletRequest httpRequest, SessionToken sessionToken) {
+    public static void assignUserToken(HttpServletRequest httpRequest, UserToken userToken) {
 
         HttpSession httpSession;
 
-        if (Api.isNull(httpRequest, sessionToken)) {
+        if (Api.isNull(httpRequest, userToken)) {
             return;
         }
 
         httpSession = httpRequest.getSession(false);
         if (httpSession != null) {
-            httpSession.setAttribute(Setup.SESSION_TOKEN, sessionToken);
+            httpSession.setAttribute(Setup.USER_TOKEN, userToken);
         }
     }
 }

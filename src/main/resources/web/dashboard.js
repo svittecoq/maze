@@ -24,10 +24,10 @@ function loadUserId() {
     return null;
 }
 
-function loadSessionToken() {
+function loadUserToken() {
 
     if (typeof (Storage) != undefined) {
-        return sessionStorage.getItem('session-token');
+        return sessionStorage.getItem('user-token');
     }
     return null;
 }
@@ -341,7 +341,7 @@ function submitMaze(maze) {
     xhr.open("POST", "/maze", true);
     xhr.setRequestHeader('Content-Type', "application/json;charset=UTF-8");
     xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader("JSESSIONID", loadSessionToken());
+    xhr.setRequestHeader("User-Token", loadUserToken());
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
@@ -432,7 +432,7 @@ function solveMinPath(maze) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", path, true);
     xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader("session-token", loadSessionToken());
+    xhr.setRequestHeader("User-Token", loadUserToken());
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
@@ -473,7 +473,7 @@ function solveMaxPath(maze) {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", path, true);
     xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader("session-token", loadSessionToken());
+    xhr.setRequestHeader("User-Token", loadUserToken());
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
@@ -553,7 +553,7 @@ function loadMazes() {
     var xhr = new XMLHttpRequest();
     xhr.open("GET", "/maze", true);
     xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader("session-token", loadSessionToken());
+    xhr.setRequestHeader("User-Token", loadUserToken());
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {

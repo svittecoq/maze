@@ -7,11 +7,11 @@ var loginDetails = "\n" + ["Username can include any number of alphanumeric char
     "1 special character !@#$%&"
 ].join("\n");
 
-function storeSession(userId, sessionToken) {
+function storeUserToken(userId, userToken) {
 
     if (typeof (Storage) != undefined) {
         sessionStorage.setItem('user-id', userId);
-        sessionStorage.setItem('session-token', sessionToken);
+        sessionStorage.setItem('user-token', userToken);
     }
 }
 
@@ -28,8 +28,8 @@ function signUp(user) {
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
-                var sessionToken = JSON.parse(xhr.responseText);
-                storeSession(user.username,sessionToken);
+                var userToken = JSON.parse(xhr.responseText);
+                storeUserToken(user.username,userToken);
                 // Open the Dashboard page after succesfull authentication
                 window.location.href="/ui/dashboard";
             } else {
@@ -53,8 +53,8 @@ function signIn(user) {
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
-                var sessionToken = JSON.parse(xhr.responseText);
-                storeSession(user.username,sessionToken);
+                var userToken = JSON.parse(xhr.responseText);
+                storeUserToken(user.username,userToken);
                 // Open the Dashboard page after succesfull authentication
                 window.location.href="/ui/dashboard";
             } else {

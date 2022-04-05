@@ -7,24 +7,24 @@ import maze.Setup;
 import maze.base.Api;
 import maze.base.RestOutput;
 import maze.handler.user.UserHandler;
-import maze.model.SessionToken;
+import maze.model.UserToken;
 
 public class SessionHandler {
 
-    private final SessionToken             _sessionToken;
+    private final UserToken                _userToken;
     private final UserHandler              _userHandler;
     private final AtomicReference<Instant> _instantReference;
 
-    private SessionHandler(SessionToken sessionToken, UserHandler userHandler) {
+    private SessionHandler(UserToken userToken, UserHandler userHandler) {
 
-        _sessionToken = sessionToken;
+        _userToken = userToken;
         _userHandler = userHandler;
         _instantReference = new AtomicReference<Instant>(Instant.now());
     }
 
-    public SessionToken sessionToken() {
+    public UserToken userToken() {
 
-        return _sessionToken;
+        return _userToken;
     }
 
     public UserHandler userHandler() {
@@ -50,7 +50,7 @@ public class SessionHandler {
 
     @Override
     public String toString() {
-        return "SessionHandler [_sessionToken=" + _sessionToken
+        return "SessionHandler [_userToken=" + _userToken
                + ", _userHandler="
                + _userHandler
                + ", _instantReference="
@@ -58,15 +58,15 @@ public class SessionHandler {
                + "]";
     }
 
-    public static RestOutput<SessionHandler> with(SessionToken sessionToken, UserHandler userHandler) {
+    public static RestOutput<SessionHandler> with(UserToken userToken, UserHandler userHandler) {
 
         SessionHandler sessionHandler;
 
-        if (Api.isNull(sessionToken, userHandler)) {
+        if (Api.isNull(userToken, userHandler)) {
             return RestOutput.badRequest();
         }
 
-        sessionHandler = new SessionHandler(sessionToken, userHandler);
+        sessionHandler = new SessionHandler(userToken, userHandler);
 
         return RestOutput.ok(sessionHandler);
     }
