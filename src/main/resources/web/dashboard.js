@@ -291,7 +291,7 @@ function createMaze(maze) {
     var gridCol;
     var gridRow;
 
-    var gridSize = prompt("Grid size", "10x10");
+    var gridSize = prompt("Enter the grid size for the maze, such as 5x5", "10x10");
     if (gridSize == null) {
         return;
     }
