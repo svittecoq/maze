@@ -1,1 +1,1 @@
-web: java -Xmx1g -cp target/*.jar maze.MazeMain -DdatabaseUri=$DATABASE_URL -DwebPort=$PORT
+web: java -Xmx1g -jar build/libs/*.jar maze.MazeMain -DdatabaseUri=$DATABASE_URL -DwebPort=$PORT
