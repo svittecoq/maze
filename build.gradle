@@ -113,12 +113,17 @@ dependencies {
     implementation jetty, jersey, jackson, javaxWsRs, javaxSevlet, jaxb, postgresqlJava, slf4j, junitTest, jerseyTest
 }
 
-
 clean.dependsOn(cleanEclipse)
 
 tasks.eclipse.dependsOn(cleanEclipse)
 
-task stage(dependsOn: ['build', 'clean'])
+task copyToLib(type: Copy) {
+
+    into "$buildDir/libs"
+    from configurations.runtimeClasspath
+}
+
+task stage(dependsOn: ['build', 'clean', 'copyToLib'])
 build.mustRunAfter clean
 
 mainClassName = 'maze.MazeMain'

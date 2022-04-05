@@ -6,6 +6,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.time.LocalTime;
@@ -211,4 +213,15 @@ public class Api {
         return Executors.newCachedThreadPool(new BaseThreadFactory(poolName));
     }
 
+    public static URI URI(String uri) {
+
+        try {
+
+            return new URI(uri);
+
+        } catch (URISyntaxException e) {
+            Api.error("URI is not valid", uri);
+            return null;
+        }
+    }
 }

@@ -47,7 +47,8 @@ import maze.rest.RestService;
 
 public class HttpService {
 
-    private final Optional<String>  _webUrlOptional;
+    private final Optional<String>  _webPathOptional;
+    private final Optional<Integer> _webPortOptional;
     private final RestService       _restService;
     private final List<HtmlServlet> _htmlServletList;
     private final Path              _webFolderPath;
@@ -55,12 +56,14 @@ public class HttpService {
     private URL                     _url;
     private HttpServer              _httpServer;
 
-    public HttpService(Optional<String> webUrlOptional,
+    public HttpService(Optional<String> webPathOptional,
+                       Optional<Integer> webPortOptional,
                        RestService restService,
                        List<HtmlServlet> htmlServletList,
                        Path webFolderPath) {
 
-        _webUrlOptional = webUrlOptional;
+        _webPathOptional = webPathOptional;
+        _webPortOptional = webPortOptional;
         _restService = restService;
         _htmlServletList = htmlServletList;
         _webFolderPath = webFolderPath;
@@ -69,9 +72,14 @@ public class HttpService {
         _httpServer = null;
     }
 
-    private Optional<String> webUrlOptional() {
+    private Optional<String> webPathOptional() {
 
-        return _webUrlOptional;
+        return _webPathOptional;
+    }
+
+    private Optional<Integer> webPortOptional() {
+
+        return _webPortOptional;
     }
 
     private RestService restService() {
@@ -150,14 +158,23 @@ public class HttpService {
             // The ServerConnector instance.
             ServerConnector connector = new ServerConnector(_httpServer, tls, alpn, h2, http11);
 
-            if (webUrlOptional().isPresent()) {
-
-                URL url = new URL(webUrlOptional().get());
-                connector.setHost(url.getHost());
-                connector.setPort(url.getPort());
+            if (webPathOptional().isPresent()) {
+                if (webPortOptional().isPresent()) {
+                    URL url = new URL(webPathOptional().get() + ":" + webPortOptional().get());
+                    connector.setHost(url.getHost());
+                    connector.setPort(url.getPort());
+                } else {
+                    URL url = new URL(webPathOptional().get());
+                    connector.setHost(url.getHost());
+                    connector.setPort(0);
+                }
             } else {
                 connector.setHost(null);
-                connector.setPort(0);
+                if (webPortOptional().isPresent()) {
+                    connector.setPort(webPortOptional().get());
+                } else {
+                    connector.setPort(0);
+                }
             }
             _httpServer.addConnector(connector);
 
@@ -337,7 +354,11 @@ public class HttpService {
 
     @Override
     public String toString() {
-        return "HttpService [_restService=" + _restService
+        return "HttpService [_webPathOptional=" + _webPathOptional
+               + ", _webPortOptional="
+               + _webPortOptional
+               + ", _restService="
+               + _restService
                + ", _htmlServletList="
                + _htmlServletList
                + ", _webFolderPath="

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URI;
 import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
@@ -15,6 +16,7 @@ import javax.ws.rs.core.Response;
 
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import maze.base.Api;
@@ -27,25 +29,26 @@ import maze.model.MazeCreation;
 import maze.model.MazeSolution;
 import maze.model.SessionToken;
 import maze.model.User;
+import maze.rest.RestService;
 
 public class RestServiceTest extends JerseyTest {
+
+    static RestService restService = null;
 
     @Override
     protected ResourceConfig configure() {
 
+        URI databaseURI;
         RestOutput<Result> resultOutput;
         RestOutput<CoreHandler> coreHandlerOutput;
         CoreHandler coreHandler;
 
-        String databaseId = UUID.randomUUID().toString();
+        // Use a test database with the defined prefix
+        databaseURI = Api.URI(Setup.DEFAULT_STORE_URI + Setup.DATABASE_PREFIX + UUID.randomUUID().toString());
 
-        coreHandlerOutput = CoreHandler.with(Optional.empty(),
-                                             Optional.empty(),
-                                             Optional.empty(),
-                                             Optional.of(databaseId),
-                                             Optional.empty());
+        coreHandlerOutput = CoreHandler.with(databaseURI, Optional.empty(), Optional.empty());
         if (RestOutput.isNOK(coreHandlerOutput)) {
-            Api.error("CoreHandler creation is NOT OK", coreHandlerOutput);
+            Api.error("CoreHandler creation is NOT OK", coreHandlerOutput, databaseURI);
             throw new RuntimeException("CoreHandler creation for RestServiceTest failed");
         }
         coreHandler = coreHandlerOutput.output();
@@ -53,11 +56,21 @@ public class RestServiceTest extends JerseyTest {
         // Run the CoreHandler
         resultOutput = coreHandler.run();
         if (RestOutput.isNOK(resultOutput)) {
-            Api.error("CoreHandler run for RestServiceTest is NOT OK", resultOutput);
+            Api.error("CoreHandler run for RestServiceTest is NOT OK", resultOutput, databaseURI);
             throw new RuntimeException("CoreHandler run for RestServiceTest failed");
         }
 
-        return coreHandler.restService();
+        restService = coreHandler.restService();
+
+        return restService;
+    }
+
+    @AfterEach
+    private void terminate() {
+
+        if (restService != null) {
+            restService.terminate();
+        }
     }
 
     private String generateValidUsername() {

@@ -220,12 +220,7 @@ public abstract class Collection<T_Record> {
 
     @Override
     public String toString() {
-        return "Collection [_name=" + _name
-               + ", _fieldArray="
-               + _fieldArray
-               + ", _storeConnector="
-               + _storeService
-               + "]";
+        return "Collection [_name=" + _name + ", _fieldArray=" + _fieldArray + "]";
     }
 
 }

@@ -1,0 +1,1 @@
+web: java -DdatabaseUri=$DATABASE_URL -DwebPort=$PORT -cp build/libs/* maze.MazeMain

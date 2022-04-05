@@ -7,13 +7,16 @@ import java.util.stream.IntStream;
 
 public class Setup {
 
-    public static final String   STORE_URL                       = "jdbc:postgresql://localhost:5432";
-    public static final String   STORE_USER                      = "postgres";
-    public static final String   STORE_PASSWORD                  = "filechain";
+    public static final String   DATABASE_URI_PROPERTY           = "databaseUri";
+    public static final String   WEB_PATH_PROPERTY               = "webPath";
+    public static final String   WEB_PORT_PROPERTY               = "webPort";
 
-    public static final String   DATABASE_ID                     = "maze-database";
+    public static final String   DEFAULT_STORE_URI               = "postgresql://postgres:filechain@localhost:5432/";
+    public static final String   DATABASE_PREFIX                 = "maze-";
+    public static final String   DATABASE_ID                     = DATABASE_PREFIX + "db";
 
-    public static final String   WEB_URL                         = "https://unity.filechain.com:35353";
+    public static final String   DEFAULT_WEB_PATH                = "https://unity.filechain.com";
+    public static final Integer  DEFAULT_WEB_PORT                = 35353;
 
     public static final int      HTTP_THREAD_COUNT               = 5;
 

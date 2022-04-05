@@ -1,5 +1,6 @@
 package maze.handler.core;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -35,17 +36,14 @@ public class CoreHandler {
     private final RestService                                     _restService;
     private final HttpService                                     _httpService;
 
-    private CoreHandler(String storeUrl,
-                        String storeUser,
-                        String storePassword,
-                        String databaseId,
-                        Optional<String> webUrlOptional) {
+    private CoreHandler(URI databaseURI, Optional<String> webPathOptional, Optional<Integer> webPortOptional) {
 
         _userHandlerMap = new ConcurrentHashMap<String, UserHandler>();
         _sessionHandlerMap = new ConcurrentHashMap<SessionToken, SessionHandler>();
-        _storeService = new StoreService(storeUrl, storeUser, storePassword, databaseId);
+        _storeService = new StoreService(databaseURI);
         _restService = new RestService(this);
-        _httpService = new HttpService(webUrlOptional,
+        _httpService = new HttpService(webPathOptional,
+                                       webPortOptional,
                                        restService(),
                                        List.of(new LoginServlet(this), new DashboardServlet(this)),
                                        Setup.WEB_PATH);
@@ -533,37 +531,43 @@ public class CoreHandler {
         return RestOutput.OK;
     }
 
+    public RestOutput<Result> terminate() {
+
+        RestOutput<Result> resultOutput;
+
+        // Stop the StoreService and drop the database
+        resultOutput = storeService().stop(true);
+        if (RestOutput.isNOK(resultOutput)) {
+            Api.error("Stop StoreService is NOT OK", resultOutput, this);
+            return RestOutput.of(resultOutput);
+        }
+
+        // Stop the HttpService
+        resultOutput = httpService().stop();
+        if (RestOutput.isNOK(resultOutput)) {
+            Api.error("Stop HttpService is NOT OK", resultOutput, this);
+            return RestOutput.of(resultOutput);
+        }
+
+        return RestOutput.OK;
+    }
+
     @Override
     public String toString() {
         return "CoreHandler [_userHandlerMap=" + _userHandlerMap + ", _sessionHandlerMap=" + _sessionHandlerMap + "]";
     }
 
-    public static RestOutput<CoreHandler> with(Optional<String> storeUrlOptional,
-                                               Optional<String> storeUserOptional,
-                                               Optional<String> storePasswordOptional,
-                                               Optional<String> databaseIdOptional,
-                                               Optional<String> webUrlOptional) {
+    public static RestOutput<CoreHandler> with(URI databaseURI,
+                                               Optional<String> webPathOptional,
+                                               Optional<Integer> webPortOptional) {
 
         CoreHandler coreHandler;
-        String storeUrl;
-        String storeUser;
-        String storePassword;
-        String databaseId;
 
-        if (Api.isNull(storeUrlOptional,
-                       storeUserOptional,
-                       storePasswordOptional,
-                       databaseIdOptional,
-                       webUrlOptional)) {
+        if (Api.isNull(databaseURI, webPathOptional, webPortOptional)) {
             return RestOutput.badRequest();
         }
 
-        storeUrl = storeUrlOptional.orElse(Setup.STORE_URL);
-        storeUser = storeUserOptional.orElse(Setup.STORE_USER);
-        storePassword = storePasswordOptional.orElse(Setup.STORE_PASSWORD);
-        databaseId = databaseIdOptional.orElse(Setup.DATABASE_ID);
-
-        coreHandler = new CoreHandler(storeUrl, storeUser, storePassword, databaseId, webUrlOptional);
+        coreHandler = new CoreHandler(databaseURI, webPathOptional, webPortOptional);
 
         return RestOutput.ok(coreHandler);
     }

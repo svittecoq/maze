@@ -1,11 +1,13 @@
 package maze.store;
 
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.List;
 
+import maze.Setup;
 import maze.base.Api;
 import maze.base.RestOutput;
 import maze.base.Result;
@@ -16,30 +18,37 @@ import maze.store.user.UserRecord;
 
 public class StoreService {
 
-    private final String         _storeUrl;
+    private final URI            _databaseURI;
     private final String         _storeUser;
     private final String         _storePassword;
-    private final String         _databaseId;
     private final String         _databaseUrl;
+    private final String         _databaseId;
 
     private final UserCollection _userCollection;
     private final MazeCollection _mazeCollection;
 
-    public StoreService(String storeUrl, String storeUser, String storePassword, String databaseId) {
+    public StoreService(URI databaseURI) {
 
-        _storeUrl = storeUrl;
-        _storeUser = storeUser;
-        _storePassword = storePassword;
+        _databaseURI = databaseURI;
 
-        _databaseId = databaseId;
-        _databaseUrl = storeUrl() + "/" + databaseId;
+        _storeUser = databaseURI().getUserInfo().split(":")[0];
+        _storePassword = databaseURI().getUserInfo().split(":")[1];
+
+        _databaseUrl = "jdbc:postgresql://" + databaseURI().getHost()
+                       + ':'
+                       + databaseURI().getPort()
+                       + databaseURI().getPath()
+                       + "?sslmode=require";
+
+        String path = databaseURI().getPath();
+        _databaseId = path.substring(path.lastIndexOf("/") + 1);
 
         _userCollection = new UserCollection(this);
         _mazeCollection = new MazeCollection(this);
     }
 
-    public String storeUrl() {
-        return _storeUrl;
+    public URI databaseURI() {
+        return _databaseURI;
     }
 
     public String storeUser() {
@@ -50,12 +59,12 @@ public class StoreService {
         return _storePassword;
     }
 
-    public String databaseId() {
-        return _databaseId;
-    }
-
     public String databaseUrl() {
         return _databaseUrl;
+    }
+
+    public String databaseId() {
+        return _databaseId;
     }
 
     private UserCollection userCollection() {
@@ -66,19 +75,16 @@ public class StoreService {
         return _mazeCollection;
     }
 
-    public RestOutput<Result> start() {
+    private RestOutput<Result> createDatabase() {
 
-        RestOutput<Result> resultOutput;
         String storeUrl;
 
-        storeUrl = storeUrl() + "/postgres";
-
-        try {
-            Class.forName("org.postgresql.Driver");
-        } catch (ClassNotFoundException t) {
-            Api.error("Failure to load the postgresql Driver. INTERNAL FAILURE");
-            return RestOutput.internalFailure();
+        if (databaseId().startsWith(Setup.DATABASE_PREFIX) == false) {
+            // Database already created
+            return RestOutput.OK;
         }
+
+        storeUrl = databaseUrl().replace(databaseId(), "postgres");
 
         try (Connection connection = DriverManager.getConnection(storeUrl, storeUser(), storePassword());
                 Statement statement = connection.createStatement()) {
@@ -89,16 +95,68 @@ public class StoreService {
                                                                     + "';")) {
 
                 if (selectResultSet.next()) {
-                    Api.info("Database " + _databaseId + " exists already", this);
+                    Api.info("Database " + databaseId() + " exists already", this);
                 } else {
                     // Create the database
-                    statement.executeUpdate("CREATE DATABASE \"" + _databaseId + "\";");
-                    Api.info("Database " + _databaseId + " created", this);
+                    statement.executeUpdate("CREATE DATABASE \"" + databaseId() + "\";");
+                    Api.info("Database " + databaseId() + " created", this);
                 }
             }
         } catch (Throwable t) {
-            Api.error(t, "Failure to open database connection. INTERNAL FAILURE", this);
+            Api.error(t, "Failure to create database. INTERNAL FAILURE", this);
             return RestOutput.internalFailure();
+        }
+
+        return RestOutput.OK;
+    }
+
+    private RestOutput<Result> dropDatabase() {
+
+        String storeUrl;
+        String updateSQL;
+
+        if (databaseId().startsWith(Setup.DATABASE_PREFIX) == false) {
+            // Database can not be dropped
+            return RestOutput.OK;
+        }
+
+        storeUrl = databaseUrl().replace(databaseId(), "postgres");
+
+        try (Connection connection = DriverManager.getConnection(storeUrl, storeUser(), storePassword());
+                Statement statement = connection.createStatement()) {
+
+            updateSQL = "DROP DATABASE IF EXISTS \"" + databaseId() + "\"";
+
+            Api.info("Droping Database : " + databaseId());
+
+            statement.executeUpdate(updateSQL);
+
+            Api.info("Database " + databaseId() + " DROPPED");
+
+        } catch (Throwable t) {
+            Api.error(t, "Failure to drop database. INTERNAL FAILURE", this);
+            return RestOutput.internalFailure();
+        }
+
+        return RestOutput.OK;
+    }
+
+    public RestOutput<Result> start() {
+
+        RestOutput<Result> resultOutput;
+
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException t) {
+            Api.error("Failure to load the postgresql Driver. INTERNAL FAILURE");
+            return RestOutput.internalFailure();
+        }
+
+        // Create the database if needed
+        resultOutput = createDatabase();
+        if (RestOutput.isNOK(resultOutput)) {
+            Api.error("createDatabase is NOT OK", resultOutput, this);
+            return RestOutput.of(resultOutput);
         }
 
         // Initialize the User Collection
@@ -118,8 +176,11 @@ public class StoreService {
         return RestOutput.OK;
     }
 
-    public RestOutput<Result> stop() {
+    public RestOutput<Result> stop(boolean dropDatabase) {
 
+        if (dropDatabase) {
+            return dropDatabase();
+        }
         return RestOutput.OK;
     }
 
@@ -145,13 +206,19 @@ public class StoreService {
 
     @Override
     public String toString() {
-        return "StoreService [_databaseId=" + _databaseId
-               + ", _storeUrl="
-               + _storeUrl
+        return "StoreService [_databaseURI=" + _databaseURI
                + ", _storeUser="
                + _storeUser
                + ", _storePassword="
                + _storePassword
+               + ", _databaseUrl="
+               + _databaseUrl
+               + ", _databaseId="
+               + _databaseId
+               + ", _userCollection="
+               + _userCollection
+               + ", _mazeCollection="
+               + _mazeCollection
                + "]";
     }
 }

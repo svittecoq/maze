@@ -50,6 +50,11 @@ public class RestService extends ResourceConfig {
         return "/*";
     }
 
+    public void terminate() {
+
+        coreHandler().terminate();
+    }
+
     @POST
     @Path("/login")
     @Consumes(Setup.JSON_MEDIA_TYPE)
