@@ -27,24 +27,8 @@ ext {
         "org.eclipse.jetty:jetty-servlets:${jettyVersion}",
         // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-http
         "org.eclipse.jetty:jetty-http:${jettyVersion}",
-        // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-security
-        "org.eclipse.jetty:jetty-security:${jettyVersion}",
         // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-rewrite
-        "org.eclipse.jetty:jetty-rewrite:${jettyVersion}",
-        // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-alpn-java-server
-        "org.eclipse.jetty:jetty-alpn-java-server:${jettyVersion}",
-        // https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-alpn-java-client
-        "org.eclipse.jetty:jetty-alpn-java-client:${jettyVersion}",
-        // https://mvnrepository.com/artifact/org.eclipse.jetty.http2/http2-common
-        "org.eclipse.jetty.http2:http2-common:${jettyVersion}",
-        // https://mvnrepository.com/artifact/org.eclipse.jetty.http2/http2-hpack
-        "org.eclipse.jetty.http2:http2-hpack:${jettyVersion}",
-        // https://mvnrepository.com/artifact/org.eclipse.jetty.http2/http2-server
-        "org.eclipse.jetty.http2:http2-server:${jettyVersion}",
-        // https://mvnrepository.com/artifact/org.eclipse.jetty.http2/http2-client
-        "org.eclipse.jetty.http2:http2-client:${jettyVersion}",
-        // https://mvnrepository.com/artifact/org.eclipse.jetty.http2/http2-http-client-transport
-        "org.eclipse.jetty.http2:http2-http-client-transport:${jettyVersion}",
+        "org.eclipse.jetty:jetty-rewrite:${jettyVersion}"
         ]
     
     jersey = [

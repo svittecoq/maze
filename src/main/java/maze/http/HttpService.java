@@ -1,9 +1,8 @@
 package maze.http;
 
-import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.URL;
 import java.nio.file.Path;
-import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -13,25 +12,16 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
-import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
-import org.eclipse.jetty.http.HttpScheme;
-import org.eclipse.jetty.http2.server.HTTP2ServerConnectionFactory;
 import org.eclipse.jetty.rewrite.handler.RedirectRegexRule;
 import org.eclipse.jetty.rewrite.handler.RewriteHandler;
 import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.HttpConfiguration;
-import org.eclipse.jetty.server.HttpConnectionFactory;
-import org.eclipse.jetty.server.SecureRequestCustomizer;
 import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.server.SslConnectionFactory;
 import org.eclipse.jetty.server.handler.DefaultHandler;
 import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.ResourceHandler;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.resource.ResourceCollection;
-import org.eclipse.jetty.util.security.Password;
-import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.ScheduledExecutorScheduler;
 import org.glassfish.jersey.server.ServerProperties;
 import org.glassfish.jersey.servlet.ServletContainer;
@@ -106,57 +96,12 @@ public class HttpService {
 
     public RestOutput<Result> start() {
 
-        KeyStore keyStore;
-        KeyStore trustStore;
-
         try {
 
             // Setup Server with pool of Threads
             _httpServer = new HttpServer();
 
-            char[] keyStorePassword = Password.deobfuscate(Setup.KEY_STORE_PASSWORD).toCharArray();
-            keyStore = KeyStore.getInstance("jks");
-            try (InputStream inputStream = Api.openResourceStream(Setup.KEY_STORE_PATH)) {
-                keyStore.load(inputStream, keyStorePassword);
-            }
-
-            char[] trustStorePassword = Password.deobfuscate(Setup.TRUST_STORE_PASSWORD).toCharArray();
-            trustStore = KeyStore.getInstance("jks");
-            try (InputStream inputStream = Api.openResourceStream(Setup.TRUST_STORE_PATH)) {
-                trustStore.load(inputStream, trustStorePassword);
-            }
-
-            // The HTTP configuration object.
-            HttpConfiguration httpConfig = new HttpConfiguration();
-
-            httpConfig.setSendServerVersion(false);
-            httpConfig.setSendDateHeader(false);
-
-            // Add the SecureRequestCustomizer because we are using TLS.
-            httpConfig.addCustomizer(new SecureRequestCustomizer());
-
-            // The ConnectionFactory for HTTP/1.1.
-            HttpConnectionFactory http11 = new HttpConnectionFactory(httpConfig);
-
-            // The ConnectionFactory for HTTP/2.
-            HTTP2ServerConnectionFactory h2 = new HTTP2ServerConnectionFactory(httpConfig);
-
-            // The ALPN ConnectionFactory.
-            ALPNServerConnectionFactory alpn = new ALPNServerConnectionFactory();
-            // The default protocol to use in case there is no negotiation.
-            alpn.setDefaultProtocol(http11.getProtocol());
-
-            // Configure the SslContextFactory with the keyStore information.
-            SslContextFactory.Server sslContextFactory = new SslContextFactory.Server();
-            sslContextFactory.setKeyStore(keyStore);
-            sslContextFactory.setTrustStore(trustStore);
-            sslContextFactory.setKeyStorePassword(new String(keyStorePassword));
-
-            // The ConnectionFactory for TLS.
-            SslConnectionFactory tls = new SslConnectionFactory(sslContextFactory, alpn.getProtocol());
-
-            // The ServerConnector instance.
-            ServerConnector connector = new ServerConnector(_httpServer, tls, alpn, h2, http11);
+            ServerConnector connector = new ServerConnector(_httpServer);
 
             if (webPathOptional().isPresent()) {
                 if (webPortOptional().isPresent()) {
@@ -214,17 +159,6 @@ public class HttpService {
                                                                                  Setup.UI_PATH,
                                                                                  ServletContextHandler.SESSIONS);
 
-            int corsss;
-            // Add the CORS filter for HTML
-            // FilterHolder htmlCorsFilter = htmlContextHandler.addFilter(CrossOriginFilter.class,
-            // "/*",
-            // EnumSet.of(DispatcherType.REQUEST));
-            // htmlCorsFilter.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "*");
-            // htmlCorsFilter.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
-            // htmlCorsFilter.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM,
-            // "GET,POST,OPTIONS,DELETE,PUT,HEAD");
-            // htmlCorsFilter.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM, "*");
-
             for (HtmlServlet htmlServlet : htmlServletList()) {
                 ServletHolder servletHolder = new ServletHolder(htmlServlet.url(), htmlServlet);
                 htmlContextHandler.addServlet(servletHolder, htmlServlet.url());
@@ -254,17 +188,6 @@ public class HttpService {
             ServletContextHandler restContextHandler = new ServletContextHandler(_httpServer,
                                                                                  "/",
                                                                                  ServletContextHandler.SESSIONS);
-
-            int cors;
-            // Add the CORS filter for REST
-            // FilterHolder restCorsFilter = restContextHandler.addFilter(CrossOriginFilter.class,
-            // "/*",
-            // EnumSet.of(DispatcherType.REQUEST));
-            // restCorsFilter.setInitParameter(CrossOriginFilter.ALLOWED_ORIGINS_PARAM, "*");
-            // restCorsFilter.setInitParameter(CrossOriginFilter.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER, "*");
-            // restCorsFilter.setInitParameter(CrossOriginFilter.ALLOWED_METHODS_PARAM,
-            // "GET,POST,OPTIONS,DELETE,PUT,HEAD");
-            // restCorsFilter.setInitParameter(CrossOriginFilter.ALLOWED_HEADERS_PARAM, "*");
 
             // Set the Application Name
             restService().property(ServerProperties.APPLICATION_NAME, "Maze");
@@ -308,7 +231,18 @@ public class HttpService {
             }
             ServerConnector serverConnector = (ServerConnector) connectorArray[0];
 
-            url(new URL(HttpScheme.HTTPS.asString(), serverConnector.getHost(), serverConnector.getLocalPort(), ""));
+            String protocol = serverConnector.getDefaultConnectionFactory().getProtocol();
+            String scheme = "http";
+            if (protocol.startsWith("SSL-") || protocol.equals("SSL")) {
+                scheme = "https";
+            }
+
+            String host = serverConnector.getHost();
+            if (host == null) {
+                host = InetAddress.getLocalHost().getHostAddress();
+            }
+
+            url(new URL(scheme, host, serverConnector.getLocalPort(), ""));
 
             while (_httpServer.isStarted() == false) {
                 Api.info("Wait for HTTP Server to run. Sleep 100 ms", _httpServer, this);

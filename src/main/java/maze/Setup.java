@@ -25,12 +25,6 @@ public class Setup {
     public static final String   CSS_MEDIA_TYPE                  = "text/css";
     public static final String   JSON_MEDIA_TYPE                 = "application/json";
 
-    public static final Path     SSL_PATH                        = Path.of("ssl");
-    public static final Path     KEY_STORE_PATH                  = SSL_PATH.resolve("keystore.jks");
-    public static final String   KEY_STORE_PASSWORD              = "OBF:1m821ku31jg81m0x1knm1kj01lx91jd21kqr1m4c";
-    public static final Path     TRUST_STORE_PATH                = SSL_PATH.resolve("truststore");
-    public static final String   TRUST_STORE_PASSWORD            = "OBF:1m821ku31jg81m0x1knm1kj01lx91jd21kqr1m4c";
-
     public static final Path     WEB_PATH                        = Path.of("web");
     public static final Path     LOGIN_PAGE                      = WEB_PATH.resolve("login.html");
     public static final Path     DASHBOARD_PAGE                  = WEB_PATH.resolve("dashboard.html");
