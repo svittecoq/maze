@@ -1,4 +1,21 @@
 
+// Press e before clicking a point in the grid to set the entrance
+var entranceKey = false;
+
+window.onkeyup = function(e) {
+    if (e.keyCode != 69) {
+        return;
+    }
+    entranceKey = false;;
+}
+
+window.onkeydown = function(e) {
+    if (e.keyCode != 69) {
+        return;
+    }
+    entranceKey = true;
+}
+
 function loadUserId() {
 
     if (typeof (Storage) != undefined) {
@@ -28,65 +45,300 @@ function defineButtonElement(label, callback) {
     var buttonElement = document.createElement('BUTTON');
 
     buttonElement.type = "BUTTON";
-    buttonElement.classList.add('soccer-button');
+    buttonElement.classList.add('maze-button');
     buttonElement.innerHTML = label;
     buttonElement.addEventListener('click', callback, false);
 
     return buttonElement;
 }
 
-function editPlayerFirstName(player) {
+function assignWallSet(maze) {
 
-    var playerFirstName = prompt("Enter the first name of the player", player.playerFirstName);
-    if (playerFirstName == null) {
+    if (maze.wallSet != null) {
         return;
     }
-    player.playerFirstName = playerFirstName;
-    refreshPlayer(player);
 
-    updatePlayer(player);
+    var wallSet = new Set();
+
+    if (maze.walls != null) {
+        for (var wall of maze.walls) {
+            wallSet.add(wall);
+        }
+    }
+
+    maze.wallSet = wallSet;
 }
 
-function editPlayerLastName(player) {
+function computePathSet(path) {
 
-    var playerLastName = prompt("Enter the last name of the player", player.playerLastName);
-    if (playerLastName == null) {
+    var pathSet = new Set();
+
+    for (var point of path) {
+        pathSet.add(wall);
+    }
+    return pathSet;
+}
+
+function nameGridPoint(col, row) {
+
+    return String.fromCharCode(64 + col) + row;
+}
+
+function typeGridPoint(name, maze, pathSet) {
+
+    if (maze.mazeId == null) {
+        // Maze not submitted yet
+        return "Input";
+    }
+
+    if (maze.entrance == name) {
+        return "Entrance";
+    }
+
+    if ((pathSet != null) && (pathSet.has(name))) {
+        return "Path";
+    }
+
+    if (maze.wallSet.has(name)) {
+        return "Wall";
+    }
+
+    return "Empty";
+}
+
+function toggleEntrancePointElement(pointElement, maze) {
+
+    entranceKey = false;
+
+    // Remove this entrance if it was there
+    if (maze.entranceElement == pointElement) {
+        removeEntrance(pointElement, maze);
         return;
     }
-    player.playerLastName = playerLastName;
-    refreshPlayer(player);
 
-    updatePlayer(player);
+    // Add this entrance to the maze
+    addEntrance(pointElement, maze);
 }
 
-function editPlayerCountry(player) {
+function toggleWallPointElement(pointElement, maze) {
 
-    var playerCountry = prompt("Enter the country of the player", player.playerCountry);
-    if (playerCountry == null) {
+    // Remove this wall if it was there
+    if (pointElement.classList.contains('maze-point-wall')) {
+        pointElement.classList.remove('maze-point-wall');
+        removeWall(pointElement.name, maze);
         return;
     }
-    player.playerCountry = playerCountry;
-    refreshPlayer(player);
 
-    updatePlayer(player);
+    // add this wall to the maze
+    pointElement.classList.add('maze-point-wall');
+    addWall(pointElement.name, maze);
 }
 
-function editPlayerTransferValue(player) {
+function togglePointElement(pointElement, maze) {
 
-    var playerTransferValue = prompt("Enter the transfer value of the player. 0 for no transfer", player.playerTransferValue);
-    if ((playerTransferValue == null) || (Number.isInteger(Number(playerTransferValue)) == false) || (Number(playerTransferValue) < 0)) {
+    if (entranceKey) {
+        toggleEntrancePointElement(pointElement, maze);
+    } else {
+        toggleWallPointElement(pointElement, maze);
+    }
+}
+
+function definePointElement(name, type, col, maze) {
+
+    var pointElement = document.createElement('DIV');
+    pointElement.classList.add('maze-point');
+
+    pointElement.name = name;
+
+    pointElement.style.gridColumn = col + " / span 1";
+
+    switch (type) {
+        case "Input":
+            pointElement.classList.add('maze-point-input');
+            pointElement.addEventListener('click', function() {
+                togglePointElement(pointElement, maze);
+            });
+            break;
+        case "Empty":
+            break;
+        case "Path":
+            pointElement.classList.add('maze-point-path');
+            break;
+        case "Wall":
+            pointElement.classList.add('maze-point-wall');
+            break;
+        case "Entrance":
+            pointElement.classList.add('maze-point-entrance');
+            break;
+    }
+
+    return pointElement;
+}
+
+function refreshGridElement(maze) {
+
+    var gridElement = maze.gridElement;
+
+    if (gridElement == null) {
         return;
     }
-    player.playerTransferValue = playerTransferValue;
-    refreshPlayer(player);
 
-    updatePlayer(player);
+    while (gridElement.childElementCount > 0) {
+        gridElement.removeChild(gridElement.lastChild);
+    }
+
+    if (maze.gridSize == null) {
+        return;
+    }
+
+    var gridArray = maze.gridSize.split("x");
+    if (gridArray.length != 2) {
+        return;
+    }
+
+    var gridCol = parseInt(gridArray[0]);
+    var gridRow = parseInt(gridArray[1]);
+
+    gridElement.style.gridTemplateColumns = "30px ".repeat(gridCol);
+    gridElement.style.gridTemplateRows = "30px ".repeat(gridRow);
+
+    // Compute the set of walls for this Maze
+    assignWallSet(maze);
+
+    var pathSet;
+
+    if (maze.minPathSet != null) {
+        // Display the Min Path
+        pathSet = maze.minPathSet;
+    } else if (maze.maxPathSet != null) {
+        // Display the Max path
+        pathSet = maze.maxPathSet;
+    } else {
+        // No Path to display
+        pathSet = null;
+    }
+
+    for (let row = 1; row <= gridRow; row++) {
+        for (let col = 1; col <= gridCol; col++) {
+
+            var name = nameGridPoint(col, row);
+            var type = typeGridPoint(name, maze, pathSet);
+
+            var pointElement = definePointElement(name, type, col, maze);
+            gridElement.appendChild(pointElement);
+        }
+    }
 }
 
-function updatePlayer(player) {
+function refreshActionsElement(maze) {
+
+    var actionsElement = maze.actionsElement;
+
+    if (actionsElement == null) {
+        return;
+    }
+
+    while (actionsElement.childElementCount > 0) {
+        actionsElement.removeChild(actionsElement.lastChild);
+    }
+
+    if (maze.gridSize == null) {
+        // Maze not yet created
+        var createButton = defineButtonElement("CREATE", function() {
+            createMaze(maze);
+        });
+        actionsElement.appendChild(createButton);
+        return;
+    }
+
+    if (maze.mazeId == null) {
+        // Maze not submitted yet for this user
+        var submitButton = defineButtonElement("SUBMIT", function() {
+            submitMaze(maze);
+        });
+        actionsElement.appendChild(submitButton);
+        return;
+    }
+
+    if ((maze.minPathSet != null) || (maze.maxPathSet != null)) {
+        // A path is already displayed
+        var clearPathButton = defineButtonElement("CLEAR PATH", function() {
+            clearPath(maze);
+        });
+        actionsElement.appendChild(clearPathButton);
+        return;
+    }
+
+    var solveMinPathButton = defineButtonElement("SOLVE MIN PATH", function() {
+        solveMinPath(maze);
+    });
+    actionsElement.appendChild(solveMinPathButton);
+
+    var solveMaxPathButton = defineButtonElement("SOLVE MAX PATH", function() {
+        solveMaxPath(maze);
+    });
+    actionsElement.appendChild(solveMaxPathButton);
+}
+
+function refreshMaze(maze) {
+
+    refreshGridElement(maze);
+    refreshActionsElement(maze);
+}
+
+function createMaze(maze) {
+
+    var gridCol;
+    var gridRow;
+
+    var gridSize = prompt("Enter the grid size for the maze, such as 5x5", "10x10");
+    if (gridSize == null) {
+        return;
+    }
+
+    try {
+        var gridArray = gridSize.split("x");
+        if (gridArray.length != 2) {
+            return;
+        }
+
+        gridCol = parseInt(gridArray[0]);
+        gridRow = parseInt(gridArray[1]);
+
+        if ((gridCol < 1) || (gridRow < 1)) {
+            alert("Grid Size does not have the proper format such as 10x10");
+            return;
+        }
+
+    } catch (error) {
+        alert("Grid Size does not have the proper format such as 10x10");
+        return;
+    }
+
+    maze.gridSize = gridCol + "x" + gridRow;
+
+    // Refresh the Maze to now didplay the grid of this new maze
+    refreshMaze(maze);
+}
+
+function submitMaze(maze) {
+
+    if ((maze.gridSize == null) || (maze.wallSet == null)) {
+        alert("Maze grid size or wallSet are not defined");
+        return;
+    }
+
+    if (maze.entrance == null) {
+        alert("Maze entrance is not defined.\n\nHold the e key while selecting a location");
+        return;
+    }
+
+    var entrance = maze.entrance;
+    var gridSize = maze.gridSize;
+    var walls = Array.from(maze.wallSet);
 
     var xhr = new XMLHttpRequest();
-    xhr.open("PUT", "/player/" + player.playerId.uuid, true);
+    xhr.open("POST", "/maze", true);
     xhr.setRequestHeader('Content-Type', "application/json;charset=UTF-8");
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader("User-Token", loadUserToken());
@@ -95,343 +347,221 @@ function updatePlayer(player) {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
 
-                var updatePlayerOutcome = JSON.parse(xhr.responseText);
-                if (updatePlayerOutcome.error != null) {
-                    alert("Update player failed :\n\n" + updatePlayerOutcome.error);
+                var mazeCreation = JSON.parse(xhr.responseText);
+                if (mazeCreation.error != null) {
+                    alert("Creating maze failed :\n\n" + mazeCreation.error);
                     return;
                 }
 
-                // Reload the page
+                // Reload the page with this new maze
                 location.reload();
             } else {
-                alert("Failure to update player. Error = " + xhr.status);
+                alert("Failure to create maze. Error = " + xhr.status);
             }
         }
     };
 
-    var putPlayer = {
-        playerId: player.playerId,
-        playerFirstName: player.playerFirstName,
-        playerLastName: player.playerLastName,
-        playerCountry: player.playerCountry,
-        playerTransferValue: player.playerTransferValue
+    var postMaze = {
+        entrance: entrance,
+        gridSize: gridSize,
+        walls: walls
     }
 
-    xhr.send(JSON.stringify(putPlayer));
+    xhr.send(JSON.stringify(postMaze));
 }
 
-function refreshPlayer(player) {
+function addWall(wall, maze) {
 
-    var row = player.row;
-    while (row.cells.length > 0) {
-        row.deleteCell(0);
+    maze.wallSet.add(wall);
+}
+
+function removeWall(wall, maze) {
+
+    maze.wallSet.delete(wall);
+}
+
+function addEntrance(entranceElement, maze) {
+
+    if (maze.entranceElement != null) {
+        maze.entranceElement.classList.remove('maze-point-entrance');
+    }
+    maze.entranceElement = entranceElement;
+    maze.entranceElement.classList.add('maze-point-entrance');
+    maze.entrance = entranceElement.name;
+}
+
+function removeEntrance(_entranceElement, maze) {
+
+    if (maze.entranceElement != null) {
+        maze.entranceElement.classList.remove('maze-point-entrance');
+        maze.entranceElement = null;
+    }
+    maze.entrance = null;
+}
+
+function clearPath(maze) {
+
+    maze.minPathSet = null;
+    maze.maxPathSet = null;
+
+    refreshMaze(maze);
+}
+
+function buildPathSet(mazeSolution) {
+
+    if ((mazeSolution == null) || (mazeSolution.path == null)) {
+        return null;
     }
 
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(player.playerId.uuid));
+    var pathSet = new Set();
 
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(player.playerType));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(player.playerFirstName));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(player.playerLastName));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(player.playerAge));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(player.playerCountry));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(player.playerAssetValue));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(player.playerTransferValue));
-
-    // Create an ActionsElement for this player
-    var actionsElement = document.createElement('DIV');
-    actionsElement.classList.add('soccer-actions');
-
-    actionsElement.appendChild(defineButtonElement("EDIT FIRST NAME", function() {
-        editPlayerFirstName(player);
-    }));
-
-    actionsElement.appendChild(defineButtonElement("EDIT LAST NAME", function() {
-        editPlayerLastName(player);
-    }));
-
-    actionsElement.appendChild(defineButtonElement("EDIT COUNTRY", function() {
-        editPlayerCountry(player);
-    }));
-
-    actionsElement.appendChild(defineButtonElement("EDIT TRANSFER VALUE", function() {
-        editPlayerTransferValue(player);
-    }));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(actionsElement);
-}
-
-function editTeamName(team) {
-
-    var teamName = prompt("Enter the name of the team", team.teamName);
-    if (teamName == null) {
-        return;
+    for (var path of mazeSolution.path) {
+        pathSet.add(path);
     }
-    team.teamName = teamName;
-    refreshTeam(team);
 
-    updateTeam(team);
+    return pathSet;
 }
 
-function editTeamCountry(team) {
+function solveMinPath(maze) {
 
-    var teamCountry = prompt("Enter the country of the team", team.teamCountry);
-    if (teamCountry == null) {
-        return;
-    }
-    team.teamCountry = teamCountry;
-    refreshTeam(team);
+    maze.minPathSet = null;
+    maze.maxPathSet = null;
 
-    updateTeam(team);
-}
-
-function updateTeam(team) {
+    var path = "/maze/" + maze.mazeId + "/solution?steps=min";
 
     var xhr = new XMLHttpRequest();
-    xhr.open("PUT", "/team/" + team.teamId.uuid, true);
-    xhr.setRequestHeader('Content-Type', "application/json;charset=UTF-8");
+    xhr.open("GET", path, true);
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader("User-Token", loadUserToken());
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
+                var mazeSolution = JSON.parse(xhr.responseText);
 
-                var updateTeamOutcome = JSON.parse(xhr.responseText);
-                if (updateTeamOutcome.error != null) {
-                    alert("Update team failed :\n\n" + updateTeamOutcome.error);
+                if (mazeSolution.error != null) {
+                    alert("Solving maze failed :\n\n" + mazeSolution.error);
                     return;
                 }
 
-                // Reload the page
-                location.reload();
+                // Build the Path Set from the solution
+                var pathSet = buildPathSet(mazeSolution);
+                if (pathSet == null) {
+                    alert("Path solution is not defined");
+                    return;
+                }
+                maze.minPathSet = pathSet;
+
+                // Refresh the display of this maze
+                refreshMaze(maze);
             } else {
-                alert("Failure to update team. Error = " + xhr.status);
+                alert("Failure to solve min path for maze. Error = " + xhr.status);
             }
         }
     };
 
-    var putTeam = {
-        teamId: team.teamId,
-        teamName: team.teamName,
-        teamCountry: team.teamCountry
-    }
-
-    xhr.send(JSON.stringify(putTeam));
-}
-
-function refreshTeam(team) {
-
-    var row = team.row;
-    while (row.cells.length > 0) {
-        row.deleteCell(0);
-    }
-
-    var teamValue = 0;
-    for (var player of team.playerArray) {
-        teamValue += player.playerAssetValue;
-    }
-    var teamPlayers = team.playerArray.length;
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(team.teamId.uuid));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(team.teamName));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(team.teamCountry));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(team.teamBalance));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(teamValue));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(teamPlayers));
-
-    // Create an ActionsElement for this team
-    var actionsElement = document.createElement('DIV');
-    actionsElement.classList.add('soccer-actions');
-
-    actionsElement.appendChild(defineButtonElement("EDIT NAME", function() {
-        editTeamName(team);
-    }));
-
-    actionsElement.appendChild(defineButtonElement("EDIT COUNTRY", function() {
-        editTeamCountry(team);
-    }));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(actionsElement);
-}
-
-function displayTeam(team) {
-
-    var teamTableBody = document.getElementById("teamTableBodyId")
-    team.row = teamTableBody.insertRow(-1);
-
-    refreshTeam(team);
-
-    var playerTableBody = document.getElementById("playerTableBodyId")
-
-    // Display all players
-    for (var player of team.playerArray) {
-        player.row = playerTableBody.insertRow(-1);
-        refreshPlayer(player);
-    }
-}
-
-function loadTeam() {
-
-    var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/team", true);
-    xhr.setRequestHeader('Accept', 'application/json');
-    xhr.setRequestHeader("User-Token", loadUserToken());
-
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState == 4) {
-            if (xhr.status == 200) {
-                var team = JSON.parse(xhr.responseText);
-                displayTeam(team);
-            } else {
-                alert("Failure to get team");
-            }
-        }
-    };
     xhr.send();
 }
 
-function transferPlayer(marketPlayer, marketTeam) {
+function solveMaxPath(maze) {
+
+    maze.minPathSet = null;
+    maze.maxPathSet = null;
+
+    var path = "/maze/" + maze.mazeId + "/solution?steps=max";
 
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/transfer", true);
-    xhr.setRequestHeader('Content-Type', "application/json;charset=UTF-8");
+    xhr.open("GET", path, true);
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader("User-Token", loadUserToken());
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
+                var mazeSolution = JSON.parse(xhr.responseText);
 
-                var transferPlayerOutcome = JSON.parse(xhr.responseText);
-                if (transferPlayerOutcome.error != null) {
-                    alert("Transfer player failed :\n\n" + transferPlayerOutcome.error);
+                if (mazeSolution.error != null) {
+                    alert("Solving maze failed :\n\n" + mazeSolution.error);
                     return;
                 }
 
-                // Reload the page
-                location.reload();
+                // Build the Path Set from the solution
+                var pathSet = buildPathSet(mazeSolution);
+                if (pathSet == null) {
+                    alert("Path solution is not defined");
+                    return;
+                }
+                maze.maxPathSet = pathSet;
+
+                // Refresh the display of this maze
+                refreshMaze(maze);
             } else {
-                alert("Failure to transfer player. Error = " + xhr.status);
+                alert("Failure to solve max path for maze. Error = " + xhr.status);
             }
         }
     };
 
-    var postPlayer = {
-        playerId: marketPlayer.playerId,
-        teamId: marketTeam.teamId
-    }
-
-    xhr.send(JSON.stringify(postPlayer));
+    xhr.send();
 }
 
-function displayMarketPlayer(marketPlayer, marketTeam, marketTableBody) {
+function displayMaze(maze, mazeTableBody) {
+
+    // Create a GridElement for this maze
+    var gridElement = document.createElement('DIV');
+    gridElement.classList.add('maze-grid');
+    maze.gridElement = gridElement;
+
+    // Create an ActionsElement for this maze
+    var actionsElement = document.createElement('DIV');
+    actionsElement.classList.add('maze-actions');
+    maze.actionsElement = actionsElement;
 
     // Create a new row
-    var row = marketTableBody.insertRow(-1);
+    var row = mazeTableBody.insertRow(-1);
 
     cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketPlayer.playerId.uuid));
+    if (maze.mazeId != null) {
+        cell.appendChild(defineTextElement("#" + maze.mazeId));
+    }
 
     cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketPlayer.playerType));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketPlayer.playerFirstName));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketPlayer.playerLastName));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketPlayer.playerAge));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketPlayer.playerCountry));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketPlayer.playerTransferValue));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketTeam.teamName));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketTeam.teamCountry));
-
-    cell = row.insertCell(-1);
-    cell.appendChild(defineTextElement(marketTeam.teamId.uuid));
-
-    // Create an ActionsElement for this player
-    var actionsElement = document.createElement('DIV');
-    actionsElement.classList.add('soccer-actions');
-
-    actionsElement.appendChild(defineButtonElement("TRANSFER", function() {
-        transferPlayer(marketPlayer, marketTeam);
-    }));
+    cell.appendChild(gridElement);
 
     cell = row.insertCell(-1);
     cell.appendChild(actionsElement);
+
+    // Refresh the Maze to display the current state
+    refreshMaze(maze);
 }
 
-function displayMarketTeam(marketTeam, marketTableBody) {
+function displayMazeArray(mazeArray) {
 
-    if (marketTeam.playerArray != null) {
-        for (var marketPlayer of marketTeam.playerArray) {
-            displayMarketPlayer(marketPlayer, marketTeam, marketTableBody);
-        }
+    var mazeTableBody = document.getElementById("mazeTableBodyId")
+
+    // First row enables the creation of a new maze
+    var newMaze = {};
+    displayMaze(newMaze, mazeTableBody);
+
+    // Display all mazes already created for this user
+    for (var maze of mazeArray) {
+        displayMaze(maze, mazeTableBody);
     }
 }
 
-function displayMarket(market) {
-
-    var marketTableBody = document.getElementById("marketTableBodyId")
-
-    if (market.teamArray != null) {
-        for (var marketTeam of market.teamArray) {
-            displayMarketTeam(marketTeam, marketTableBody);
-        }
-    }
-}
-
-function loadMarket() {
+function loadMazes() {
 
     var xhr = new XMLHttpRequest();
-    xhr.open("GET", "/market", true);
+    xhr.open("GET", "/maze", true);
     xhr.setRequestHeader('Accept', 'application/json');
     xhr.setRequestHeader("User-Token", loadUserToken());
 
     xhr.onreadystatechange = function() {
         if (xhr.readyState == 4) {
             if (xhr.status == 200) {
-                var market = JSON.parse(xhr.responseText);
-                displayMarket(market);
+                var mazeArray = JSON.parse(xhr.responseText);
+                displayMazeArray(mazeArray);
             } else {
-                alert("Failure to get market");
+                alert("Failure to get mazes");
             }
         }
     };
@@ -448,9 +578,7 @@ function displayPage() {
 
     displayUserName();
 
-    loadTeam();
-
-    loadMarket();
+    loadMazes();
 }
 
 displayPage();

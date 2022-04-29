@@ -1,5 +1,5 @@
 
-var loginDetails = "\n" + ["Username must be a valid email address",
+var loginDetails = "\n" + ["Username can include any number of alphanumeric characters",
     "Password must have 8 characters or more with at least :",
     "1 lower case character",
     "1 upper case character" ,
@@ -11,7 +11,7 @@ function storeUserToken(userId, userToken) {
 
     if (typeof (Storage) != undefined) {
         sessionStorage.setItem('user-id', userId);
-        sessionStorage.setItem('user-token', userToken.token);
+        sessionStorage.setItem('user-token', userToken);
     }
 }
 
