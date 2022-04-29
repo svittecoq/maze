@@ -110,7 +110,7 @@ task copyToLib(type: Copy) {
 task stage(dependsOn: ['build', 'clean', 'copyToLib'])
 build.mustRunAfter clean
 
-mainClassName = 'maze.MazeMain'
+mainClassName = 'soccer.SoccerMain'
 
 jar {
   manifest {

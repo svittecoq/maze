@@ -4,20 +4,63 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <link rel="shortcut icon" href="favicon.ico">
-<link rel="stylesheet" href="maze.css">
-<title>Maze - Dashboard</title>
+<link rel="stylesheet" href="soccer.css">
+<title>Soccer - Dashboard</title>
 </head>
 <body>
 	<p class="username" id="usernameId"></p>
-	<table class="maze-table">
+	<h1>Team</h1>
+	<table class="soccer-table">
 		<thead>
 			<tr>
-				<th style="min-width: 20px">#</th>
-				<th>Maze</th>
+				<th>Team Id</th>
+				<th>Name</th>
+				<th>Country</th>
+				<th>Balance</th>
+				<th>Value</th>
+				<th>Players</th>
 				<th>Actions</th>
 			</tr>
 		</thead>
-		<tbody id="mazeTableBodyId">
+		<tbody id="teamTableBodyId">
+		</tbody>
+	</table>
+	<h1>Players</h1>
+	<table class="soccer-table">
+		<thead>
+			<tr>
+				<th>Player Id</th>
+				<th>Type</th>
+				<th>First Name</th>
+				<th>Last Name</th>
+				<th>Age</th>
+				<th>Country</th>
+				<th>Asset Value</th>
+				<th>Transfer Value</th>
+				<th>Actions</th>
+			</tr>
+		</thead>
+		<tbody id="playerTableBodyId">
+		</tbody>
+	</table>
+	<h1>Market</h1>
+	<table class="soccer-table">
+		<thead>
+			<tr>
+				<th>Player Id</th>
+				<th>Type</th>
+				<th>First Name</th>
+				<th>Last Name</th>
+				<th>Country</th>
+				<th>Age</th>
+				<th>Transfer Value</th>
+                <th>Team Name</th>
+                <th>Team Country</th>
+                <th>Team Id</th>
+				<th>Actions</th>
+			</tr>
+		</thead>
+		<tbody id="marketTableBodyId">
 		</tbody>
 	</table>
 	<script src="dashboard.js"></script>
